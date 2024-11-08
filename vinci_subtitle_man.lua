@@ -881,15 +881,16 @@ local function OnOptimizeSubtitles(ev)
         return
     end
     
-    -- 查必填项
+    -- 检查必填项
     if itm.dify_key.Text == "" then
         itm.DialogBox.Text = "错误: 请填写 dify key"
         return
     end
     
-    -- 获取当前时间线名称
-    local timelineName = timeline:GetName():gsub("[%/%\\%:%*%?%\"<>%|]", "_")
-    local srtPath = getTempPath() .. timelineName .. ".srt"
+    -- 使用新的文件名格式
+    local baseName = getFileBaseName(project, timeline)
+    local srtPath = getTempPath() .. baseName .. ".srt"
+    print("尝试读取字幕文件:", srtPath)
     
     -- 读取SRT文件内容
     local subtitleContent = readSrtContent(srtPath)
