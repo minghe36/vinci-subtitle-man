@@ -16,13 +16,13 @@
 
 ## 安装说明
 
-1. 在 github 中下载插件代码
+### 在 github 中下载插件代码
 
-2. 将插件文件夹复制到达芬奇插件目录下，目录路径：
+### 将插件文件夹复制到达芬奇插件目录下，目录路径：
    - mac：/Library/Application Support/Blackmagic Design/DaVinci Resolve/Fusion/Scripts
    - win：C:\Users\[用户名]\AppData\Roaming\Blackmagic Design\DaVinci Resolve\Support\Fusion\Scripts
 
-3. 安装 stable-ts 库
+### 安装 stable-ts 库
 
 
 本插件依赖 [stable-ts](https://github.com/jianfch/stable-ts) 库，请确保安装成功，否则无法使用。
