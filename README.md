@@ -59,7 +59,7 @@ pip3 install torch torchvision torchaudio --index-url https://download.pytorch.o
 安装 stable-ts
 
 ```
-pip install -U git+https://github.com/jianfch/stable-ts.git@whisperless
+pip install -U git+https://github.com/jianfch/stable-ts.git
 ```
 
 4. 配置 dify API key
