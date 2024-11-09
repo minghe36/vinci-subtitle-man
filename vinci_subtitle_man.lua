@@ -1,6 +1,26 @@
 -- MIT License
 -- Copyright (c) 2024
 
+-- 添加 decodeUnicode 函数
+local function decodeUnicode(str)
+    -- 将Unicode转换为UTF-8
+    return str:gsub('\\u([%x%x%x%x])', function(hex)
+        local code = tonumber(hex, 16)
+        if code < 128 then
+            return string.char(code)
+        elseif code < 2048 then
+            local b1 = math.floor(code / 64) + 192
+            local b2 = code % 64 + 128
+            return string.char(b1, b2)
+        else
+            local b1 = math.floor(code / 4096) + 224
+            local b2 = math.floor((code % 4096) / 64) + 128
+            local b3 = code % 64 + 128
+            return string.char(b1, b2, b3)
+        end
+    end)
+end
+
 local ui = fu.UIManager
 local dispatcher = bmd.UIDispatcher(ui)
 
@@ -54,6 +74,37 @@ end
 local function getConfigPath()
     return getStoragePath() .. "config.txt"
 end
+
+-- 获取文件名的函数
+local function getFileBaseName(project, timeline)
+    -- 获取项目名和时间线名
+    local projectName = project:GetName():gsub("%.%w+$", "")  -- 移除扩展名
+    local timelineName = timeline:GetName():gsub("%.%w+$", "")  -- 移除扩展名
+    
+    -- 处理特殊字符
+    projectName = projectName:gsub("[%/%\\%:%*%?%\"<>%|]", "_")
+    timelineName = timelineName:gsub("[%/%\\%:%*%?%\"<>%|]", "_")
+    
+    -- 组合文件名
+    return projectName .. "_" .. timelineName
+end
+
+-- 添加时间转换辅助函数
+local function timeToMs(timeStr)
+    local h, m, s, ms = timeStr:match("(%d+):(%d+):(%d+),(%d+)")
+    return ((h * 3600 + m * 60 + s) * 1000) + ms
+end
+
+local function msToTime(ms)
+    local h = math.floor(ms / (3600 * 1000))
+    ms = ms % (3600 * 1000)
+    local m = math.floor(ms / (60 * 1000))
+    ms = ms % (60 * 1000)
+    local s = math.floor(ms / 1000)
+    ms = ms % 1000
+    return string.format("%02d:%02d:%02d,%03d", h, m, s, ms)
+end
+
 
 -- 创建主窗口
 local win = dispatcher:AddWindow({
@@ -205,7 +256,7 @@ local win = dispatcher:AddWindow({
                 ui.VGap(2),
                 ui.Button{
                     ID = insertTimelineID,
-                    Text = "将字幕插入到时间线",
+                    Text = "将字幕插入到间线",
                     MinimumSize = {150, 50},
                     MaximumSize = {1000, 50},
                     IconSize = {17, 17},
@@ -244,7 +295,7 @@ local win = dispatcher:AddWindow({
                 ui.VGap(1),
                 ui.Button{
                     ID = "RefreshSubs",
-                    Text = "更新字幕",
+                    Text = "更 新 字 幕",
                     MinimumSize = {200, 40},
                     MaximumSize = {1000, 40},
                     Font = ui.Font{PixelSize = 15}
@@ -296,29 +347,65 @@ local function loadConfig()
     end
 end
 
--- 修改 saveSubtitlesToFile 函数
-local function saveSubtitlesToFile(srtPath)
-    local content = itm.SubtitleContent.Text
-    if not content or content == "" or content == "无字幕" then
-        print("没有字幕内容可保存")
-        return false
-    end
-    
-    local file = io.open(srtPath, "w")
+-- 修 readSrtContent 函数，使用UTF-8编码读取
+local function readSrtContent(srtPath)
+    -- 使用UTF-8编码打开文件
+    local file = io.open(srtPath, "r")
     if not file then
-        print("无法打开文件进行写入: " .. srtPath)
+        print("无法打开字幕文件: " .. srtPath)
+        return nil
+    end
+    
+    -- 读取文件内容
+    local content = file:read("*a")
+    file:close()
+    
+    -- 检查是否包含UTF-8 BOM
+    if content:sub(1,3) == '\239\187\191' then
+        content = content:sub(4)  -- 去除BOM
+    end
+    
+    return content
+end
+
+-- 修改 saveSubtitlesToFile 函数，使用UTF-8编码写入
+local function saveSubtitlesToFile(srtPath)
+    local content = itm.SubtitleContent.PlainText
+    if not content then
+        print("字幕内容为nil")
         return false
     end
     
-    -- 确保内容以换行符结尾
-    if not content:match("\n$") then
-        content = content .. "\n"
+    print("字幕内容长度:", string.len(content or ""))
+    
+    -- 检查内容是否为空
+    if string.len(content:gsub("%s+", "")) == 0 or content == "无字幕" then
+        print("字幕内容为空或为'无字幕'")
+        return false
     end
+    
+    -- 使用UTF-8编码写入文件
+    local file = io.open(srtPath, "w+b")
+    if not file then
+        print("无法打开文件进行写入:", srtPath)
+        return false
+    end
+    
+    -- 写入UTF-8 BOM
+    file:write('\239\187\191')
     
     -- 写入内容
-    file:write(content)
-    file:close()
-    print("成功保存字幕到文件: " .. srtPath)
+    local success, err = pcall(function()
+        file:write(content)
+        file:close()
+    end)
+    
+    if not success then
+        print("写入文件时发生错误:", err)
+        return false
+    end
+    
+    print("成功保存字幕到文件:", srtPath)
     return true
 end
 
@@ -378,37 +465,61 @@ local function getCurrentTimeline()
     return project, timeline
 end
 
--- 添加清理渲染队列的函数
+-- 修改清理渲染队列的函数
 local function clearRenderQueue(project)
     -- 获取所有渲染任务
     local renderJobs = project:GetRenderJobList()
-    if not renderJobs then return end
+    if not renderJobs then 
+        print("没有找到渲染任务")
+        return 
+    end
     
-    -- 遍历并删除所有渲染任务
+    print("当前渲染队列任务数:", #renderJobs)
+    
+    -- 获取当前时间线名称作为比较
+    local baseName = getFileBaseName(project, project:GetCurrentTimeline())
+    print("当前音频文件基础名称:", baseName)
+    
+    -- 获取temp目录的标准化路径
+    local tempPath = getTempPath():gsub("/$", "")  -- 移除末尾的斜杠
+    print("Temp录路径:", tempPath)
+    
+    -- 遍历并只删除音频渲染任务
     for _, job in ipairs(renderJobs) do
         local jobId = job["JobId"]
-        if jobId then
-            print("删除渲染任务:", jobId)
-            project:DeleteRenderJob(jobId)
+        local jobName = job["RenderJobName"]
+        local targetDir = (job["TargetDir"] or ""):gsub("/$", "")  -- 移除末尾的斜杠
+        local customName = job["CustomName"]
+        
+        print("检查渲染任务:")
+        print("- ID:", jobId)
+        print("- 名称:", jobName)
+        print("- 目标目录:", targetDir)
+        print("- 自定义名称:", customName)
+        
+        -- 检查是否是我们生成的音频任务
+        if jobId and targetDir then
+            -- 标准化路径后比较
+            if targetDir == tempPath then
+                print("找到匹配的音频渲染任务:", jobId)
+                local success = project:DeleteRenderJob(jobId)
+                if success then
+                    print("成删除音频渲任务")
+                else
+                    print("删除音频渲染任务失败")
+                end
+            else
+                print("目标目录不匹配")
+                print("期望路径:", tempPath)
+                print("实际路径:", targetDir)
+            end
+        else
+            print("任务ID目标目录为空")
         end
     end
 end
 
--- 修改获取文件名的函数
-local function getFileBaseName(project, timeline)
-    -- 获取项目名和时间线名
-    local projectName = project:GetName():gsub("%.%w+$", "")  -- 移除扩展名
-    local timelineName = timeline:GetName():gsub("%.%w+$", "")  -- 移除扩展名
-    
-    -- 处理特殊字符
-    projectName = projectName:gsub("[%/%\\%:%*%?%\"<>%|]", "_")
-    timelineName = timelineName:gsub("[%/%\\%:%*%?%\"<>%|]", "_")
-    
-    -- 组合文件名
-    return projectName .. "_" .. timelineName
-end
-
--- 修改 renderAudio 函数中的文件名处理
+-- 改 renderAudio 函数中的文件名处理
 local function renderAudio()
     local resolve = getResolve()
     if not resolve then
@@ -428,13 +539,13 @@ local function renderAudio()
     -- 使用新的文件名格式
     local baseName = getFileBaseName(project, timeline)
     
-    -- 切换到编辑页面
+    -- 切换到编辑面
     resolve:OpenPage("edit")
     
     -- 获取帧率
     local frame_rate = timeline:GetSetting("timelineFrameRate")
     
-    -- 设置渲染参数，使用新的文件名
+    -- 设置染参数，使用新的文件名
     project:LoadRenderPreset('Audio Only')
     project:SetRenderSettings({
         SelectAllFrames = 1,
@@ -461,7 +572,7 @@ local function renderAudio()
     
     -- 开始渲染
     project:StartRendering(pid)
-    print("正在渲染音频...")
+    print("正在染音频...")
     itm.DialogBox.Text = "正在渲染音频..."
     
     -- 等待渲染完成
@@ -487,7 +598,7 @@ local function ExecuteCommand(command)
     local path = os.getenv("PATH") or ""
     local newPath = "/usr/local/bin:/opt/homebrew/bin:" .. path  -- 添加可能的路径
     
-    -- 使用完整的环境设置来执行命令
+    -- 使用完整环境设置来执行命令
     local fullCommand = string.format('export PATH="%s" && %s', newPath, command)
     local handle = io.popen(fullCommand .. " 2>&1")
     local result = handle:read("*a")
@@ -497,10 +608,10 @@ end
 
 -- 获取 stable-ts 路径
 local function getStableTsPath()
-    -- 首先检查环境变量
+    -- 首先检查环境量
     local envPath = os.getenv("STABLE_TS_PATH")
     if envPath and io.open(envPath, "r") then
-        print("从环境变量获取 stable-ts 路径: " .. envPath)
+        print("从环境变量取 stable-ts 路径: " .. envPath)
         return envPath
     end
 
@@ -535,7 +646,7 @@ local function getStableTsPath()
     return nil
 end
 
--- 修改 generateSubtitles 函数中的文件名处理
+-- 修改 generateSubtitles 函数
 local function generateSubtitles(audioPath, project, timeline)
     local stableTsPath = getStableTsPath()
     if not stableTsPath then
@@ -551,7 +662,6 @@ local function generateSubtitles(audioPath, project, timeline)
     local existingFile = io.open(srtPath, "r")
     if existingFile then
         existingFile:close()
-        print("删除已存在的字幕文件:", srtPath)
         os.remove(srtPath)
         -- 等待文件系统完成删除操作
         fu:Sleep(0.1)
@@ -579,33 +689,36 @@ local function generateSubtitles(audioPath, project, timeline)
     
     -- 构建 stable-ts 命令
     local cmd = string.format(
-        '"%s" "%s" -o "%s" --segment_level true --word_level false --language %s --model %s --initial_prompt "以下是%s的句子。"',
+        '"%s" "%s" -o "%s" --segment_level true --word_level false --language %s --model %s --initial_prompt "以下是%s的句子。" --prepend_punctuations ",。？！"',
         stableTsPath, audioPath, srtPath, selectedLanguage, selectedModel,
         selectedLanguage == "zh" and "普通话" or "该语言"
     )
     
-    print("开始生成字幕文件...")
-    print("执行命令: " .. cmd)
+    print("\n开始执行 stable-ts 命令:")
+    print(cmd)
+    print("\nstable-ts 执行输出:")
     
+    -- 执行命令
     local success, output = ExecuteCommand(cmd)
-    
-    print("命令输出:")
-    print(output)
+    print(output)  -- 打印 stable-ts 的输出
     
     if not success then
-        print("命令执行失败")
+        print("stable-ts 执行失败")
         return nil
     end
     
+    print("\nstable-ts 执行完成")
+    
+    -- 检查字幕文件是否生成
     local file = io.open(srtPath, "r")
     if file then
         file:close()
-        print("字幕文件已生成: " .. srtPath)
+        print("字幕文件已生成:", srtPath)
         return srtPath
-    else
-        print("生成字幕文件失败")
-        return nil
     end
+    
+    print("字幕文件生成失败")
+    return nil
 end
 
 -- 添加读取SRT文件的函数
@@ -663,7 +776,7 @@ local function OnGenerateSubtitles(ev)
         return
     end
     
-    -- 渲染音频文件
+    -- 渲染音频件
     local audioFile, markIn, frameRate = renderAudio()
     if not audioFile then
         return
@@ -676,7 +789,7 @@ local function OnGenerateSubtitles(ev)
     timelineName = timelineName:gsub("[%/%\\%:%*%?%\"<>%|]", "_")  -- 替换非法字符
     
     -- 生成字幕文件
-    itm.DialogBox.Text = "正在生成字幕中..."
+    itm.DialogBox.Text = "正在生成字幕中，先去喝杯水吧..."
     local srtPath = generateSubtitles(audioFile, project, timeline)  -- 传递project和timeline
     
     if srtPath then
@@ -711,18 +824,19 @@ local function OnRefreshSubtitles(ev)
     -- 使用新的文件名格式
     local baseName = getFileBaseName(project, timeline)
     local srtPath = getTempPath() .. baseName .. ".srt"
+    print("准备保存字幕到文件:", srtPath)
     
     -- 保存当前编辑的字幕
     if saveSubtitlesToFile(srtPath) then
         print("字幕已保存到文件")
         itm.DialogBox.Text = "字幕已保存"
     else
-        itm.DialogBox.Text = "字幕内容为空，无需保存"
         print("保存字幕失败")
+        itm.DialogBox.Text = "保存字幕失败，请确保字幕内容不为空"
     end
 end
 
--- 添加HTTP请求相关函数
+-- 添加HTTP请求关函数
 local function makeHttpRequest(url, method, headers, body)
     -- 构建curl命令
     local headerStr = ""
@@ -758,9 +872,46 @@ local function readSrtContent(srtPath)
     return content
 end
 
--- 修改 processDifyResponse 函数中的 decodeUnicode 函数
+-- 修改 optimizeSubtitles 函数，添加调试输出
+local function optimizeSubtitles(apiKey, articleUrl, rule, subtitleContent)
+    local url = "https://api.dify.ai/v1/workflows/run"
+    local headers = {
+        ["Authorization"] = "Bearer " .. apiKey,
+        ["Content-Type"] = "application/json"
+    }
+    
+    -- 转义JSON字符串中的特殊字符
+    local function escapeJson(str)
+        return str:gsub('"', '\\"'):gsub('\n', '\\n')
+    end
+    
+    -- 构建JSON请求体
+    local jsonBody = string.format([[{
+        "inputs": {
+            "articleUrl": "%s",
+            "subtitle": "%s",
+            "rule": "%s"
+        },
+        "response_mode": "streaming",
+        "user": "vinci"
+    }]], escapeJson(articleUrl or ""), escapeJson(subtitleContent), escapeJson(rule or ""))
+    
+    print("\n开始调用 Dify API:")
+    print("请求URL:", url)
+    print("请求头:", headers["Authorization"])
+    print("请求体:", jsonBody)
+    
+    -- 发送请求
+    local response = makeHttpRequest(url, "POST", headers, jsonBody)
+    print("\nDify API 响应:")
+    print(response)
+    
+    return response
+end
+
+-- 修改 processDifyResponse 函数
 local function processDifyResponse(response, srtPath)
-    print("开始理Dify响应...")
+    print("开始处理Dify响应...")
     
     -- 修改 Unicode 解码函数
     local function decodeUnicode(str)
@@ -825,8 +976,8 @@ local function processDifyResponse(response, srtPath)
     end
     
     if newSubtitleContent then
-        -- 写入字幕文件（使用二进制模式）
-        local file = io.open(srtPath, "w")  -- 改用普通模式打开
+        -- 写入字幕文件
+        local file = io.open(srtPath, "w")
         if file then
             file:write(newSubtitleContent)
             file:close()
@@ -836,41 +987,6 @@ local function processDifyResponse(response, srtPath)
     end
     
     return false
-end
-
--- 修改 optimizeSubtitles 函数，改进JSON格式
-local function optimizeSubtitles(apiKey, articleUrl, rule, subtitleContent)
-    local url = "https://api.dify.ai/v1/workflows/run"
-    local headers = {
-        ["Authorization"] = "Bearer " .. apiKey,
-        ["Content-Type"] = "application/json"
-    }
-    
-    -- 转义JSON字符串中的特殊字符
-    local function escapeJson(str)
-        return str:gsub('"', '\\"'):gsub('\n', '\\n')
-    end
-    
-    -- 构建JSON请求体
-    local jsonBody = string.format([[{
-        "inputs": {
-            "articleUrl": "%s",
-            "subtitle": "%s",
-            "rule": "%s"
-        },
-        "response_mode": "streaming",
-        "user": "vinci"
-    }]], escapeJson(articleUrl or ""), escapeJson(subtitleContent), escapeJson(rule or ""))
-    
-    print("发送请求到Dify API...")
-    print("请求URL:", url)
-    print("请求体:", jsonBody)
-    
-    -- 发送请求
-    local response = makeHttpRequest(url, "POST", headers, jsonBody)
-    print("收到响应:", response)
-    
-    return response
 end
 
 -- 修改 OnOptimizeSubtitles 函数
@@ -900,7 +1016,7 @@ local function OnOptimizeSubtitles(ev)
     end
     
     -- 调用Dify API
-    itm.DialogBox.Text = "正在优化字幕..."
+    itm.DialogBox.Text = "正在优化字幕中，站起来运动下..."
     local response = optimizeSubtitles(
         itm.dify_key.Text,
         itm.articleUrl.Text,
@@ -950,7 +1066,7 @@ local function importSubtitlesToTimeline(srtPath)
         return false
     end
 
-    -- 确保在根文件夹中
+    -- 确保根文件夹中
     local rootFolder = mediaPool:GetRootFolder()
     mediaPool:SetCurrentFolder(rootFolder)
 
@@ -1019,7 +1135,7 @@ local function OnInsertTimeline(ev)
     end
 end
 
--- 修改 loadExistingSubtitles 函数
+-- 修改 loadExistingSubtitles 函数，使用UTF-8编码读取
 local function loadExistingSubtitles()
     local project, timeline = getCurrentTimeline()
     if not project or not timeline then
@@ -1027,27 +1143,31 @@ local function loadExistingSubtitles()
         return
     end
     
-    -- 使用新的文件名格式
     local baseName = getFileBaseName(project, timeline)
     local srtPath = getTempPath() .. baseName .. ".srt"
     print("检查字幕文件路径:", srtPath)
     
-    -- 检查字幕文件是否存在
-    local file = io.open(srtPath, "rb")  -- 使用二进制模式打开
+    -- 使用UTF-8编码打开文件
+    local file = io.open(srtPath, "r")
     if file then
         local content = file:read("*a")
         file:close()
+        
+        -- 检查并去除UTF-8 BOM
+        if content:sub(1,3) == '\239\187\191' then
+            content = content:sub(4)
+        end
         
         if content and #content > 0 then
             print("找到已存在的字幕文件:", srtPath)
             print("字幕内容长度:", #content)
             
-            -- 直接显示字幕内容
+            -- 设置字幕内容
             itm.SubtitleContent.Text = content
             itm.DialogBox.Text = "已加载现有字幕"
             print("成功加载字幕内容到界面")
         else
-            print("字幕文件为空")
+            print("字幕件为空")
             itm.SubtitleContent.Text = "无字幕"
         end
     else
@@ -1065,7 +1185,7 @@ local function initializeModelSelector()
     itm.ModelSelector.CurrentIndex = 1  -- 默认选择small模型
 end
 
--- 添加语言选择器初始化函数
+-- 添加选择器初始化函数
 local function initializeLanguageSelector()
     itm.LanguageSelector:AddItem("中文 (zh)")
     itm.LanguageSelector:AddItem("英语 (en)")

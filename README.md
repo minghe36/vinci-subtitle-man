@@ -62,6 +62,9 @@ pip3 install torch torchvision torchaudio --index-url https://download.pytorch.o
 pip install -U git+https://github.com/jianfch/stable-ts.git
 ```
 
+如果上述安装失败，请尝试使用anaconda安装，可以避免环境导致的安装问题。
+
+
 4. 配置 dify API key
 
 你可以自己在 dify 中配置纠错优化的大模型逻辑，dify 的使用请看我的系列教程：[浩叔的dify+cursor课程](https://space.bilibili.com/1055596703/channel/collectiondetail?sid=3993222)
