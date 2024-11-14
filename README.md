@@ -4,8 +4,7 @@
 
 做这个插件的起因是市面上没有好用的达芬奇中文视频转录字幕的插件，使用剪映，需要来回切换，非常麻烦，而且剪映生成的字幕错误也很多，现在这个功能还要收费了！就自己做了一个。
 
-![截图](https://file.notion.so/f/f/39985f86-f597-45fc-b3c5-965c6cec3f22/2b7fa505-ea21-48ec-b236-5462cc37deda/iShot_2024-11-08_10.23.03.png?table=block&id=1385b7e2-7560-804d-91e5-d777fd2f507a&spaceId=39985f86-f597-45fc-b3c5-965c6cec3f22&expirationTimestamp=1731124800000&signature=QU3-67gIsxg4iEi3yfyjyCR6uCycgE0xhh9foLLn2e0&downloadName=iShot_2024-11-08_10.23.03.png)
-
+[dify 工作流文件](https://www.yuque.com/xiewenhao-9gxwj/zvkb97/lwxp5u4bwm4nv8h1?singleDoc# 《第九讲：cursor+dify实现达芬奇自动字幕生成插件》)，请到文稿中下载。
 
 ## 功能特点
 
@@ -42,7 +41,7 @@ python install.py
 
 #### 安装方法2 ：使用Anaconda安装：
 
-如何自动安装失败，推荐使用 Anaconda 安装。
+如何自动安装失败，比如brew 安装 ffmpeg 很容易失败 ，推荐使用 Anaconda 安装。
 
 使用Anaconda的优势：
 - 环境隔离，避免依赖冲突
@@ -84,10 +83,7 @@ conda activate stable-ts
 3. 安装FFmpeg
 
 ```bash
-# Windows/Linux
-conda install ffmpeg -c conda-forge
-# macOS
-brew install ffmpeg  # 如果已经安装过可以跳过
+conda install ffmpeg
 ```
 
 4. 安装PyTorch
