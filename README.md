@@ -24,56 +24,95 @@
 
 ### 安装 stable-ts 库
 
-
-
 本插件依赖 [stable-ts](https://github.com/jianfch/stable-ts) 库，请确保安装成功，否则无法使用。
 stable-ts 是对 open ai 的 whisper 库的优化封装，依赖于 [whisper](https://github.com/openai/whisper).
 
-请自行安装好 python 。因为我手头上没有 win 电脑，所以没有测试 win 的安装，如果遇到问题，请反馈给我。
 
-#### 自动安装方法（推荐）：
+#### 安装方法1 ：自动安装方法（推荐）：
+
+请自行安装好 python3 。
 
 运行 install.py 脚本，会自动安装 stable-ts 库
 
-```
+```bash
 python install.py
 ```
 
-#### 手动安装方法：
 
 
-安装 FFmpeg 依赖库
+#### 安装方法2 ：使用Anaconda安装：
 
+如何自动安装失败，推荐使用 Anaconda 安装。
+
+使用Anaconda的优势：
+- 环境隔离，避免依赖冲突
+- 更好的包管理和依赖处理
+- 适用于所有操作系统
+- 更容易解决安装问题
+
+1. 安装Anaconda
+   - Windows: 
+     1. 访问[Anaconda官网](https://www.anaconda.com/download)下载Windows安装包
+     2. 运行下载的.exe文件，按提示完成安装
+     3. 安装时建议勾选"Add Anaconda to PATH"选项
+
+   - macOS:
+     1. 访问[Anaconda官网](https://www.anaconda.com/download)下载macOS安装包
+     2. 运行下载的.pkg文件，按提示完成安装
+     3. 打开终端，运行`source ~/.zshrc`或`source ~/.bash_profile`刷新环境变量
+
+   - Linux:
+     1. 下载安装脚本：
+        ```bash
+        wget https://repo.anaconda.com/archive/Anaconda3-2023.09-0-Linux-x86_64.sh
+        ```
+     2. 运行安装脚本：
+        ```bash
+        bash Anaconda3-2023.09-0-Linux-x86_64.sh
+        ```
+     3. 按提示完成安装，并运行`source ~/.bashrc`刷新环境变量
+
+2. 创建并激活新的环境
+
+```bash
+# 创建名为stable-ts的新环境，使用Python 3.9
+conda create -n stable-ts python=3.9
+# 激活环境
+conda activate stable-ts
 ```
-# on Ubuntu or Debian
-sudo apt update && sudo apt install ffmpeg
 
-# on Arch Linux
-sudo pacman -S ffmpeg
+3. 安装FFmpeg
 
-# on MacOS using Homebrew (https://brew.sh/)
-brew install ffmpeg
-
-# on Windows using Chocolatey (https://chocolatey.org/)
-choco install ffmpeg
-
-# on Windows using Scoop (https://scoop.sh/)
-scoop install ffmpeg
+```bash
+# Windows/Linux
+conda install ffmpeg -c conda-forge
+# macOS
+brew install ffmpeg  # 如果已经安装过可以跳过
 ```
 
-安装 PyTorch
+4. 安装PyTorch
 
-```
-pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+```bash
+# 如果有NVIDIA GPU（推荐）
+conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c nvidia
+# 如果没有GPU或使用macOS
+conda install pytorch torchvision torchaudio -c pytorch
 ```
 
-安装 stable-ts
+5. 安装stable-ts
 
-```
+```bash
 pip install -U git+https://github.com/jianfch/stable-ts.git
 ```
 
-如果上述安装失败，请尝试使用anaconda安装，可以避免环境导致的安装问题。
+6. 验证安装
+
+```bash
+# 确保在stable-ts环境中
+conda activate stable-ts
+# 测试stable-ts是否安装成功
+stable-ts --version
+```
 
 
 4. 配置 dify API key
