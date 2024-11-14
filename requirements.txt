@@ -1,0 +1,17 @@
+# 基础依赖
+torch>=2.0.0  # PyTorch
+torchvision>=0.15.0  # PyTorch视觉库
+torchaudio>=2.0.0  # PyTorch音频库
+
+# stable-ts及其依赖
+git+https://github.com/jianfch/stable-ts.git  # stable-ts最新版本
+ffmpeg-python>=0.2.0  # FFmpeg Python绑定
+numpy>=1.20.0  # 数值计算库
+scipy>=1.7.0  # 科学计算库
+more-itertools>=8.0.0  # 迭代工具库
+tqdm>=4.64.0  # 进度条
+requests>=2.28.0  # HTTP请求库
+
+# 可选依赖
+transformers>=4.30.0  # Hugging Face Transformers库（用于某些模型）
+accelerate>=0.20.0  # 加速推理

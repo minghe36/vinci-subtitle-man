@@ -25,10 +25,21 @@
 ### 安装 stable-ts 库
 
 
+
 本插件依赖 [stable-ts](https://github.com/jianfch/stable-ts) 库，请确保安装成功，否则无法使用。
 stable-ts 是对 open ai 的 whisper 库的优化封装，依赖于 [whisper](https://github.com/openai/whisper).
 
-安装方法：
+请自行安装好 python 。因为我手头上没有 win 电脑，所以没有测试 win 的安装，如果遇到问题，请反馈给我。
+
+#### 自动安装方法（推荐）：
+
+运行 install.py 脚本，会自动安装 stable-ts 库
+
+```
+python install.py
+```
+
+#### 手动安装方法：
 
 
 安装 FFmpeg 依赖库
