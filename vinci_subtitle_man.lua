@@ -298,7 +298,7 @@ local win = dispatcher:AddWindow({
                 ui.VGap(2),
                 ui.Button{
                     ID = insertTimelineID,
-                    Text = "将字幕插入到间线",
+                    Text = "将字幕插入到当前时间线",
                     MinimumSize = {150, 50},
                     MaximumSize = {1000, 50},
                     IconSize = {17, 17},
