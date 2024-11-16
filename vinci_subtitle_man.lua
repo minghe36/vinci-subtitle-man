@@ -132,7 +132,7 @@ local function readSrtContent(srtPath)
     return content
 end
 
--- 添加时转换辅助函数
+-- 添加时��转换辅助函数
 local function timeToMs(timeStr)
     local h, m, s, ms = timeStr:match("(%d+):(%d+):(%d+),(%d+)")
     return ((tonumber(h) * 3600 + tonumber(m) * 60 + tonumber(s)) * 1000) + tonumber(ms)
@@ -488,7 +488,7 @@ end
 
 -- 修改清理渲染队列的函数
 local function clearRenderQueue(project)
-    -- 获取所有渲染任
+    -- 获取所有渲染任���
     local renderJobs = project:GetRenderJobList()
     if not renderJobs then 
         print("没有找到渲染任务")
@@ -593,16 +593,16 @@ local function renderAudio()
     
     -- 开始渲染
     project:StartRendering(pid)
-    print("正在宣染音频...")
+    print("正在染音频...")
     itm.DialogBox.Text = "正在渲染音频..."
     
     -- 等待渲染完成
-    local progress = 0
-    while progress < 100 do
+    while project:IsRenderingInProgress() do
+        local status = project:GetRenderJobStatus(pid)
+        local progress = status and status["CompletionPercentage"] or 0
+        print("进度: ", progress, "%")
+        itm.DialogBox.Text = string.format("渲进度: %d%%", progress)
         fu:Sleep(0.5)
-        progress = project:GetRenderJobStatus(jobId).CompletedFrames / totalFrames * 100
-        progress = math.floor(progress or 0)  -- 添加nil值保护
-        print(string.format("进度: %d %%", progress))  -- 使用string.format代替字符串连接
     end
     
     print("音频渲染完成!")
