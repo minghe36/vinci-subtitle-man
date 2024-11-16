@@ -132,7 +132,7 @@ local function readSrtContent(srtPath)
     return content
 end
 
--- 添加时��转换辅助函数
+-- 添加时转换辅助函数
 local function timeToMs(timeStr)
     local h, m, s, ms = timeStr:match("(%d+):(%d+):(%d+),(%d+)")
     return ((tonumber(h) * 3600 + tonumber(m) * 60 + tonumber(s)) * 1000) + tonumber(ms)
@@ -443,7 +443,7 @@ local function OnBrowseFiles(ev)
     end
 end
 
--- 在文件开头添加获取resolve对象的函数
+-- 在文件开头添加获��resolve对象的函数
 local function getResolve()
     local resolve = bmd.scriptapp("Resolve")
     if not resolve then
@@ -488,7 +488,7 @@ end
 
 -- 修改清理渲染队列的函数
 local function clearRenderQueue(project)
-    -- 获取所有渲染任���
+    -- 获取所有渲染任
     local renderJobs = project:GetRenderJobList()
     if not renderJobs then 
         print("没有找到渲染任务")
@@ -540,7 +540,7 @@ local function clearRenderQueue(project)
     end
 end
 
--- 改 renderAudio 函数中的文件名处
+-- 修改 renderAudio 函数
 local function renderAudio()
     local resolve = getResolve()
     if not resolve then
@@ -560,57 +560,120 @@ local function renderAudio()
     -- 使用新的文件名格式
     local baseName = getFileBaseName(project, timeline)
     
-    -- 切换到编辑面
+    -- 切换到编辑页面
     resolve:OpenPage("edit")
     
-    -- 获帧率
+    -- 获取帧率
     local frame_rate = timeline:GetSetting("timelineFrameRate")
     
-    -- 设置染参，使用新的文件名
+    -- 设置渲染参数
     project:LoadRenderPreset('Audio Only')
     project:SetRenderSettings({
         SelectAllFrames = 1,
-        CustomName = baseName,  -- 使用新的文件名
+        CustomName = baseName,
         TargetDir = getTempPath(),
         AudioCodec = "Linear PCM",
         ExportVideo = false,
         ExportAudio = true,
         AudioBitDepth = "16",
         AudioSampleRate = "48000",
-        FormatWidth = timeline:GetSetting("timelineResolutionWidth"),
-        FormatHeight = timeline:GetSetting("timelineResolutionHeight"),
-        FrameRate = frame_rate,
         FileExtension = "wav"
     })
     
     -- 添加渲染任务
-    local pid = project:AddRenderJob()
-    
-    -- 获取入点帧位置
-    local renderSettings = project:GetRenderJobList()[#project:GetRenderJobList()]
-    local markIn = renderSettings['MarkIn']
-    print("MarkIn:", markIn)
+    local jobId = project:AddRenderJob()
+    if not jobId then
+        print("错误: 添加渲染任务失败")
+        return nil
+    end
     
     -- 开始渲染
-    project:StartRendering(pid)
-    print("正在染音频...")
+    print("开始渲染...")
+    if not project:StartRendering(jobId) then
+        print("错误: 启动渲染失败")
+        return nil
+    end
+    
+    print("正在渲染音频...")
     itm.DialogBox.Text = "正在渲染音频..."
     
     -- 等待渲染完成
-    while project:IsRenderingInProgress() do
-        local status = project:GetRenderJobStatus(pid)
-        local progress = status and status["CompletionPercentage"] or 0
-        print("进度: ", progress, "%")
-        itm.DialogBox.Text = string.format("渲进度: %d%%", progress)
-        fu:Sleep(0.5)
-    end
-    
-    print("音频渲染完成!")
-    itm.DialogBox.Text = "音频渲染完成!"
-    
-    -- 返回完整的WAV文件路径
+    local startTime = os.time()
+    local timeout = 300  -- 5分钟超时
     local location = getTempPath() .. baseName .. ".wav"
-    return location, markIn, frame_rate
+    local lastStatus = ""
+    local noProgressCount = 0
+    
+    while true do
+        -- 检查超时
+        if os.time() - startTime > timeout then
+            print("渲染超时")
+            itm.DialogBox.Text = "渲染超时"
+            return nil
+        end
+        
+        -- 检查渲染状态
+        local jobStatus = project:GetRenderJobStatus(jobId)
+        if not jobStatus then
+            print("等待渲染状态...")
+            fu:Sleep(1.0)
+            noProgressCount = noProgressCount + 1
+            if noProgressCount > 30 then  -- 30秒无响应
+                print("渲染似乎卡住了，尝试重新开始...")
+                project:StartRendering(jobId)
+                noProgressCount = 0
+            end
+            goto continue
+        end
+        
+        -- 重置无进度计数器
+        noProgressCount = 0
+        
+        -- 检查渲染状态变化
+        local currentStatus = jobStatus.JobStatus or ""
+        if currentStatus ~= lastStatus then
+            print("渲染状态:", currentStatus)
+            lastStatus = currentStatus
+        end
+        
+        -- 检查渲染是否完成
+        if currentStatus == "Complete" or currentStatus == "完成" then  -- 添加中文状态检查
+            print("渲染任务完成，等待文件写入...")
+            -- 等待文件写入完成
+            fu:Sleep(2.0)
+            
+            -- 检查文件是否存在且可以打开
+            local file = io.open(location, "r")
+            if file then
+                file:close()
+                print("音频文件生成成功:", location)
+                itm.DialogBox.Text = "音频渲染完成!"
+                -- 确保退出循环
+                return location, nil, frame_rate
+            else
+                print("错误: 找不到渲染的音频文件:", location)
+                itm.DialogBox.Text = "渲染失败: 找不到音频文件"
+                return nil
+            end
+        elseif currentStatus == "Failed" or currentStatus == "失败" then  -- 添加中文状态检查
+            print("渲染失败!")
+            itm.DialogBox.Text = "渲染失败!"
+            return nil
+        end
+        
+        -- 显示进度
+        if jobStatus.CompletedFrames and jobStatus.TotalFrames and jobStatus.TotalFrames > 0 then
+            local progress = math.floor((jobStatus.CompletedFrames / jobStatus.TotalFrames) * 100)
+            if progress > 100 then progress = 100 end
+            print(string.format("渲染进度: %d%% (%d/%d)", 
+                progress, jobStatus.CompletedFrames, jobStatus.TotalFrames))
+        end
+        
+        -- 等待一段时间再检查
+        fu:Sleep(1.0)
+        
+        ::continue::
+    end
 end
 
 -- 添加执行命令的函数
@@ -863,7 +926,7 @@ end
 
 -- 添加HTTP请求关函数
 local function makeHttpRequest(url, method, headers, body)
-    -- 构建curl命令
+    -- 建curl命令
     local headerStr = ""
     for k, v in pairs(headers) do
         headerStr = headerStr .. string.format(" --header '%s: %s'", k, v)
@@ -1018,7 +1081,7 @@ end
 local function OnOptimizeSubtitles(ev)
     local project, timeline = getCurrentTimeline()
     if not project or not timeline then
-        itm.DialogBox.Text = "错误: 未找到时间线"
+        itm.DialogBox.Text = "错误: 未到时间线"
         return
     end
     
@@ -1170,7 +1233,7 @@ local function loadExistingSubtitles()
     
     local baseName = getFileBaseName(project, timeline)
     local srtPath = getTempPath() .. baseName .. ".srt"
-    print("查字幕文件路径:", srtPath)
+    print("查字幕���件路径:", srtPath)
     
     -- 使用UTF-8编码打开件
     local file = io.open(srtPath, "r")
@@ -1223,7 +1286,7 @@ end
 
 -- 初始化
 loadConfig()  -- 加载配置
-loadExistingSubtitles()  -- 加载现有字幕
+loadExistingSubtitles()  -- 加载现有字
 initializeModelSelector()  -- 初始化模型选择器
 initializeLanguageSelector()  -- 初始化语言选择器
 
