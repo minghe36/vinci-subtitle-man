@@ -6,6 +6,12 @@
 
 [dify 工作流文件](https://www.yuque.com/xiewenhao-9gxwj/zvkb97/lwxp5u4bwm4nv8h1?singleDoc# 《第九讲：cursor+dify实现达芬奇自动字幕生成插件》)，请到文稿中下载。
 
+[插件安装与自定义纠错工作流视频教程](https://www.bilibili.com/video/BV1HwmoYREoQ/?spm_id_from=333.999.0.0&vd_source=50c41c1bed77ff65f5947e5b52ba3e85)
+
+[插件使用教程视频](https://www.bilibili.com/video/BV1R1DqYeEdL/?spm_id_from=333.999.0.0&vd_source=50c41c1bed77ff65f5947e5b52ba3e85)
+
+![截图](https://res.cloudinary.com/dpzscy2ao/image/upload/v1731805348/iShot_2024-11-17_09.02.17_stnhd5.png)
+
 ## 功能特点
 
 - 本地运行，免费的
@@ -21,103 +27,65 @@
    - mac：/Library/Application Support/Blackmagic Design/DaVinci Resolve/Fusion/Scripts
    - win：C:\Users\[用户名]\AppData\Roaming\Blackmagic Design\DaVinci Resolve\Support\Fusion\Scripts
 
-### 安装 stable-ts 库
+### 安装方法 1：使用一键安装脚本安装插件
 
-本插件依赖 [stable-ts](https://github.com/jianfch/stable-ts) 库，请确保安装成功，否则无法使用。
-stable-ts 是对 open ai 的 whisper 库的优化封装，依赖于 [whisper](https://github.com/openai/whisper).
-
-
-#### 安装方法1 ：自动安装方法（推荐）：
-
-请自行安装好 python3 。
-
-运行 install.py 脚本，会自动安装 stable-ts 库
+为了更方便大家安装，特意写了一个一键安装的脚本，你可以插件目录中找到 install.py 文件。
+确保本机安装了 python3 与 Homebrew ，即可以在终端中执行python与 brew 命令。 
+打开命令行终端，找到插件目录下的 install.py 安装脚本，执行安装：
 
 ```bash
 python install.py
 ```
+(install.py 路径记得换成你自己的路径)
 
 
+如果安装顺利的话，执行 stable-ts --version命令能够成功，说明就安装成功了。
 
-#### 安装方法2 ：使用Anaconda安装：
+brew 安装 ffmpeg 时可能会遇到网络问题，安装失败的，可以试下第二种安装方法。
 
-如何自动安装失败，比如brew 安装 ffmpeg 很容易失败 ，推荐使用 Anaconda 安装。
+### 安装方法 2：使用Anaconda安装插件
 
-使用Anaconda的优势：
-- 环境隔离，避免依赖冲突
-- 更好的包管理和依赖处理
-- 适用于所有操作系统
-- 更容易解决安装问题
+Anaconda 允许用户创建和管理多个独立的 Python 环境，集成了强大的包管理工具 conda，可以轻松安装、更新和卸载各种软件包，并自动处理依赖关系。这简化了环境配置和依赖管理的过程。
 
-1. 安装Anaconda
-   - Windows: 
-     1. 访问[Anaconda官网](https://www.anaconda.com/download)下载Windows安装包
-     2. 运行下载的.exe文件，按提示完成安装
-     3. 安装时建议勾选"Add Anaconda to PATH"选项
+访问[Anaconda官网](https://www.anaconda.com/download)下载安装包，可以选择跳过注册，直接下载。
 
-   - macOS:
-     1. 访问[Anaconda官网](https://www.anaconda.com/download)下载macOS安装包
-     2. 运行下载的.pkg文件，按提示完成安装
-     3. 打开终端，运行`source ~/.zshrc`或`source ~/.bash_profile`刷新环境变量
+安装成功后，在终端中运行 conda 命令试试看。
 
-   - Linux:
-     1. 下载安装脚本：
-        ```bash
-        wget https://repo.anaconda.com/archive/Anaconda3-2023.09-0-Linux-x86_64.sh
-        ```
-     2. 运行安装脚本：
-        ```bash
-        bash Anaconda3-2023.09-0-Linux-x86_64.sh
-        ```
-     3. 按提示完成安装，并运行`source ~/.bashrc`刷新环境变量
+没有问题，我们就使用 conda 来安装 stable-ts ：
 
-2. 创建并激活新的环境
+创建并激活新的 python 环境
 
 ```bash
-# 创建名为stable-ts的新环境，使用Python 3.9
 conda create -n stable-ts python=3.9
-# 激活环境
 conda activate stable-ts
 ```
-
-3. 安装FFmpeg
+安装FFmpeg
 
 ```bash
 conda install ffmpeg
 ```
 
-4. 安装PyTorch
+安装PyTorch 
 
 ```bash
-# 如果有NVIDIA GPU（推荐）
-conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c nvidia
-# 如果没有GPU或使用macOS
 conda install pytorch torchvision torchaudio -c pytorch
 ```
 
-5. 安装stable-ts
+安装stable-ts
 
-```bash
+```bash  
 pip install -U git+https://github.com/jianfch/stable-ts.git
 ```
 
-6. 验证安装
+安装成功后，就可以执行 stable-ts --version 试试。
 
-```bash
-# 确保在stable-ts环境中
-conda activate stable-ts
-# 测试stable-ts是否安装成功
-stable-ts --version
-```
-
-
-4. 配置 dify API key
+### 配置 dify API key
 
 你可以自己在 dify 中配置纠错优化的大模型逻辑，dify 的使用请看我的系列教程：[浩叔的dify+cursor课程](https://space.bilibili.com/1055596703/channel/collectiondetail?sid=3993222)
 
 如果你嫌麻烦，可以先临时使用我的 API key：**app-zZ6K9xI0jC4e3zHa6XiKKcjZ**，我用的是暂时免费的[Grok](https://x.ai/api)模型，优化效果很不错，关键支持长文优化。
 
-（该 API key 不保证长期有效）
+（该 API key 不保证长期有效，目前是有每个月 25美元的免费额度）
 
 
 ## 使用步骤
