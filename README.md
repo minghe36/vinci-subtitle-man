@@ -4,13 +4,15 @@
 
 做这个插件的起因是市面上没有好用的达芬奇中文视频转录字幕的插件，使用剪映，需要来回切换，非常麻烦，而且剪映生成的字幕错误也很多，现在这个功能还要收费了！就自己做了一个。
 
-[dify 工作流文件](https://www.yuque.com/xiewenhao-9gxwj/zvkb97/lwxp5u4bwm4nv8h1?singleDoc# 《第九讲：cursor+dify实现达芬奇自动字幕生成插件》)，请到文稿中下载。
+[dify 工作流文件](https://res.cloudinary.com/dpzscy2ao/raw/upload/v1731805929/%E8%BE%BE%E8%8A%AC%E5%A5%87%E5%AD%97%E5%B9%95%E7%94%9F%E6%88%90%E6%8F%92%E4%BB%B60.2_zu4upj.yml)
 
 [插件安装与自定义纠错工作流视频教程](https://www.bilibili.com/video/BV1HwmoYREoQ/?spm_id_from=333.999.0.0&vd_source=50c41c1bed77ff65f5947e5b52ba3e85)
 
 [插件使用教程视频](https://www.bilibili.com/video/BV1R1DqYeEdL/?spm_id_from=333.999.0.0&vd_source=50c41c1bed77ff65f5947e5b52ba3e85)
 
 ![截图](https://res.cloudinary.com/dpzscy2ao/image/upload/v1731805348/iShot_2024-11-17_09.02.17_stnhd5.png)
+
+[达芬奇插件的视频开发教程](https://www.yuque.com/xiewenhao-9gxwj/zvkb97/lwxp5u4bwm4nv8h1)
 
 ## 功能特点
 
