@@ -598,81 +598,45 @@ local function renderAudio()
     itm.DialogBox.Text = "正在渲染音频..."
     
     -- 等待渲染完成
-    local startTime = os.time()
-    local timeout = 300  -- 5分钟超时
-    local location = getTempPath() .. baseName .. ".wav"
-    local lastStatus = ""
-    local noProgressCount = 0
+    while project:IsRenderingInProgress() do
+        local status = project:GetRenderJobStatus(jobId)
+        local progress = status and status["CompletionPercentage"] or 0
+        print("进度: ", progress, "%")
+        itm.DialogBox.Text = string.format("渲染进度: %d%%", progress)
+        fu:Sleep(0.5)
+    end
+    
+    print("渲染任务完成，等待文件写入...")
+    itm.DialogBox.Text = "渲染任务完成，等待文件写入..."
+    
+    -- 统一使用正斜杠的路径
+    local location = getTempPath():gsub("\\", "/") .. baseName .. ".wav"
+    print("检查音频文件:", location)
+    
+    -- 等待文件写入完成
+    local maxWaitTime = 30  -- 最多等待30秒
+    local waitStart = os.time()
     
     while true do
-        -- 检查超时
-        if os.time() - startTime > timeout then
-            print("渲染超时")
-            itm.DialogBox.Text = "渲染超时"
+        -- 检查文件是否存在且可以打开
+        local file = io.open(location, "r")
+        if file then
+            file:close()
+            print("音频文件生成成功:", location)
+            itm.DialogBox.Text = "音频渲染完成!"
+            return location, markIn, frame_rate
+        end
+        
+        -- 检查是否超时
+        if os.time() - waitStart > maxWaitTime then
+            print("错误: 等待文件写入超时")
+            itm.DialogBox.Text = "错误: 等待文件写入超时"
             return nil
         end
         
-        -- 检查渲染状态
-        local jobStatus = project:GetRenderJobStatus(jobId)
-        if not jobStatus then
-            print("等待渲染状态...")
-            fu:Sleep(1.0)
-            noProgressCount = noProgressCount + 1
-            if noProgressCount > 30 then  -- 30秒无响应
-                print("渲染似乎卡住了，尝试重新开始...")
-                project:StartRendering(jobId)
-                noProgressCount = 0
-            end
-            goto continue
-        end
-        
-        -- 重置无进度计数器
-        noProgressCount = 0
-        
-        -- 检查渲染状态变化
-        local currentStatus = jobStatus.JobStatus or ""
-        if currentStatus ~= lastStatus then
-            print("渲染状态:", currentStatus)
-            lastStatus = currentStatus
-        end
-        
-        -- 检查渲染是否完成
-        if currentStatus == "Complete" or currentStatus == "完成" then  -- 添加中文状态检查
-            print("渲染任务完成，等待文件写入...")
-            -- 等待文件写入完成
-            fu:Sleep(2.0)
-            
-            -- 检查文件是否存在且可以打开
-            local file = io.open(location, "r")
-            if file then
-                file:close()
-                print("音频文件生成成功:", location)
-                itm.DialogBox.Text = "音频渲染完成!"
-                -- 确保退出循环
-                return location, nil, frame_rate
-            else
-                print("错误: 找不到渲染的音频文件:", location)
-                itm.DialogBox.Text = "渲染失败: 找不到音频文件"
-                return nil
-            end
-        elseif currentStatus == "Failed" or currentStatus == "失败" then  -- 添加中文状态检查
-            print("渲染失败!")
-            itm.DialogBox.Text = "渲染失败!"
-            return nil
-        end
-        
-        -- 显示进度
-        if jobStatus.CompletedFrames and jobStatus.TotalFrames and jobStatus.TotalFrames > 0 then
-            local progress = math.floor((jobStatus.CompletedFrames / jobStatus.TotalFrames) * 100)
-            if progress > 100 then progress = 100 end
-            print(string.format("渲染进度: %d%% (%d/%d)", 
-                progress, jobStatus.CompletedFrames, jobStatus.TotalFrames))
-        end
-        
-        -- 等待一段时间再检查``````````````````````````````
+        -- 等待一段时间再检查
         fu:Sleep(1.0)
-        
-        ::continue::
+        print("等待文件写入...", location)
     end
 end
 
@@ -690,7 +654,7 @@ local function ExecuteCommand(command)
     return success, result
 end
 
--- ��改 getStableTsPath 函数
+-- 改 getStableTsPath 函数
 local function getStableTsPath()
     -- 首先检查环境变量
     local envPath = os.getenv("STABLE_TS_PATH")
@@ -1181,7 +1145,7 @@ local function importSubtitlesToTimeline(srtPath)
         local clipName = item:GetName()
         if clipName == srtFileName then
             print("在媒体池中找到已存在的字幕文件:", clipName)
-            -- 删���已存在的字幕文件
+            -- 删已存在的字幕文件
             mediaPool:DeleteClips({item})
             print("已从媒体池中删除:", clipName)
             break
