@@ -614,17 +614,29 @@ local function renderAudio()
     print("检查音频文件:", location)
     
     -- 等待文件写入完成
-    local maxWaitTime = 30  -- 最多等待30秒
+    local maxWaitTime = 60  -- 增加到60秒
     local waitStart = os.time()
+    local checkInterval = 2  -- 每2秒检查一次
+    
+    -- 先等待一段时间让文件系统完成写入
+    fu:Sleep(5.0)  -- 先等待5秒
     
     while true do
         -- 检查文件是否存在且可以打开
         local file = io.open(location, "r")
         if file then
+            -- 检查文件大小
+            local size = file:seek("end")
             file:close()
-            print("音频文件生成成功:", location)
-            itm.DialogBox.Text = "音频渲染完成!"
-            return location, markIn, frame_rate
+            
+            if size > 0 then
+                print("音频文件生成成功:", location)
+                print("文件大小:", size, "字节")
+                itm.DialogBox.Text = "音频渲染完成!"
+                return location, markIn, frame_rate
+            else
+                print("文件存在但大小为0，继续等待...")
+            end
         end
         
         -- 检查是否超时
@@ -635,8 +647,9 @@ local function renderAudio()
         end
         
         -- 等待一段时间再检查
-        fu:Sleep(1.0)
+        fu:Sleep(checkInterval)
         print("等待文件写入...", location)
+        print("已等待:", os.time() - waitStart, "秒")
     end
 end
 
