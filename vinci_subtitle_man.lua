@@ -443,7 +443,7 @@ local function OnBrowseFiles(ev)
     end
 end
 
--- 在文件开头添加获��resolve对象的函数
+-- 在文件开头添加获resolve对象的函数
 local function getResolve()
     local resolve = bmd.scriptapp("Resolve")
     if not resolve then
@@ -669,7 +669,7 @@ local function renderAudio()
                 progress, jobStatus.CompletedFrames, jobStatus.TotalFrames))
         end
         
-        -- 等待一段时间再检查
+        -- 等待一段时间再检查``````````````````````````````
         fu:Sleep(1.0)
         
         ::continue::
@@ -690,12 +690,12 @@ local function ExecuteCommand(command)
     return success, result
 end
 
--- 获取 stable-ts 路径
+-- ��改 getStableTsPath 函数
 local function getStableTsPath()
-    -- 首先检查环境量
+    -- 首先检查环境变量
     local envPath = os.getenv("STABLE_TS_PATH")
     if envPath and io.open(envPath, "r") then
-        print("从环境变量取 stable-ts 路径: " .. envPath)
+        print("从环境变量获取 stable-ts 路径: " .. envPath)
         return envPath
     end
 
@@ -709,15 +709,28 @@ local function getStableTsPath()
         return result
     end
 
-    -- 检查常的安装位置
+    -- 获取HOME环境变量
+    local home = os.getenv("HOME")
+    if not home then
+        print("警告: 无法获取HOME环境变量")
+        home = ""
+    end
+
+    -- 检查常见的安装位置
     local commonPaths = {
         "/usr/local/bin/stable-ts",
         "/usr/bin/stable-ts",
         "/opt/anaconda3/bin/stable-ts",
-        "/opt/miniconda3/bin/stable-ts",
-        os.getenv("HOME") .. "/anaconda3/bin/stable-ts",
-        os.getenv("HOME") .. "/miniconda3/bin/stable-ts"
+        "/opt/miniconda3/bin/stable-ts"
     }
+    
+    -- 如果有HOME环境变量，添加用户目录下的路径
+    if home ~= "" then
+        table.insert(commonPaths, home .. "/anaconda3/bin/stable-ts")
+        table.insert(commonPaths, home .. "/miniconda3/bin/stable-ts")
+        table.insert(commonPaths, home .. "/anaconda3/envs/stable-ts/bin/stable-ts")
+        table.insert(commonPaths, home .. "/miniconda3/envs/stable-ts/bin/stable-ts")
+    end
 
     for _, path in ipairs(commonPaths) do
         if io.open(path, "r") then
@@ -1168,7 +1181,7 @@ local function importSubtitlesToTimeline(srtPath)
         local clipName = item:GetName()
         if clipName == srtFileName then
             print("在媒体池中找到已存在的字幕文件:", clipName)
-            -- 删除已存在的字幕文件
+            -- 删���已存在的字幕文件
             mediaPool:DeleteClips({item})
             print("已从媒体池中删除:", clipName)
             break
@@ -1233,7 +1246,7 @@ local function loadExistingSubtitles()
     
     local baseName = getFileBaseName(project, timeline)
     local srtPath = getTempPath() .. baseName .. ".srt"
-    print("查字幕���件路径:", srtPath)
+    print("查字幕件路径:", srtPath)
     
     -- 使用UTF-8编码打开件
     local file = io.open(srtPath, "r")
