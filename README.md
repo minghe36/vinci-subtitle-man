@@ -1,3 +1,5 @@
+### 达芬奇 AI 字幕插件与语音合成插件最新版本请到[hao-one](https://www.hao-one.com)下载，支持 mac 与 windows
+
 # 浩叔的智能字幕生成工具
 
 一个免费开源的达芬奇AI中文字幕生成插件。
