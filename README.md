@@ -2,7 +2,7 @@
 
 开源的版本安装比较复杂，受限本机性能，转录慢，纠错容易失败。重新做了一个新的高可用、安装简单的的达芬奇字幕插件与语言合成插件，目前已经更新到v6，支持 mac 与 windows。
 
-###下载地址：[https://www.hao-one.com](https://www.hao-one.com)
+### 下载地址：[https://www.hao-one.com](https://www.hao-one.com)
 
 ### hao-one达芬奇字幕插件功能介绍：
 
