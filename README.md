@@ -8,6 +8,8 @@
 
 ### 下载地址：[https://www.haoai.pro/haoone](https://www.haoai.pro/haoone)
 
+新的达芬奇字幕插件已经开源，请看新的项目：[https://github.com/minghe36/haoone-app](https://github.com/minghe36/haoone-app)
+
 ### hao-one软件介绍：
 
 - 体验好，全流程在剪辑软件中，无需多个软件切换
